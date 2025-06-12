@@ -22,17 +22,20 @@ export default withAuth(
         const isAuth = !!token
         const isAuthPage = req.nextUrl.pathname === '/'
         const isApiRoute = req.nextUrl.pathname.startsWith('/api')
+        const isAuthApiRoute = req.nextUrl.pathname.startsWith('/api/auth')
 
-        // Skip auth checks for API routes - handle them separately
+        // Skip auth checks for API routes (including NextAuth API routes)
         if (isApiRoute) {
             return response
         }
 
+        // Allow the login page and NextAuth pages to load without redirect
         if (isAuthPage) {
-            if (isAuth) {
+            // Only redirect to dashboard if user is authenticated AND not coming from a callback
+            if (isAuth && !req.nextUrl.searchParams.has('callbackUrl')) {
                 return NextResponse.redirect(new URL('/dashboard', req.url))
             }
-            return null
+            return response // Don't return null, return response with CORS headers
         }
 
         if (!isAuth) {
@@ -52,8 +55,8 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
-                // Allow API routes to pass through - they'll handle their own auth
-                if (req.nextUrl.pathname.startsWith('/api')) {
+                // Always allow auth pages and API routes
+                if (req.nextUrl.pathname === '/' || req.nextUrl.pathname.startsWith('/api')) {
                     return true
                 }
                 return !!token
