@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MODERATOR
+}
+
+enum EventCategory {
+  HEALTH
+  EDUCATION
+  ART_AND_CULTURE
+  ENVIRONMENT
+  NATURAL_DISASTER_RELIEF
+  SPORTS_AND_ADVENTURE
+}
+
+enum EventStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  DRAFT
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]  @relation("UserEvents")
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  location    String?
+  category    EventCategory
+  status      EventStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById Int
+  createdBy   User     @relation("UserEvents", fields: [createdById], references: [id])
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?    // optional
+  subject   String?
+  message   String
+  resolved  Boolean?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BloodDonor {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String
+  phone       String?
+  bloodGroup  BloodGroup
+  city        String
+  donationDate DateTime @default(now())
+  message     String?   // optional message or note
+  createdAt   DateTime  @default(now())
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+}
