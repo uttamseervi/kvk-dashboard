@@ -9,7 +9,7 @@ export default withAuth(
 
         // Set CORS headers for your static site
         response.headers.set('Access-Control-Allow-Origin', 'https://kvk-main.vercel.app/')
-        // response.headers.set('Access-Control-Allow-Credentials', 'true')
+        // response.headers.set('Access-Control-Allow-Credentials', 'true') for testing 
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
