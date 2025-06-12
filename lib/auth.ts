@@ -70,6 +70,50 @@ export const authOptions: NextAuthOptions = {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
+    // 🔥 Critical: Configure cookies for cross-origin
+    cookies: {
+        sessionToken: {
+            name: process.env.NODE_ENV === 'production'
+                ? '__Secure-next-auth.session-token'
+                : 'next-auth.session-token',
+            options: {
+                httpOnly: true,
+                sameSite: 'none', // 🔥 Required for cross-origin
+                secure: process.env.NODE_ENV === 'production', // 🔥 Must be true in production
+                path: '/',
+                domain: process.env.NODE_ENV === 'production'
+                    ? '.vercel.app' // Allow subdomain sharing
+                    : undefined
+            },
+        },
+        callbackUrl: {
+            name: process.env.NODE_ENV === 'production'
+                ? '__Secure-next-auth.callback-url'
+                : 'next-auth.callback-url',
+            options: {
+                sameSite: 'none',
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                domain: process.env.NODE_ENV === 'production'
+                    ? '.vercel.app'
+                    : undefined
+            }
+        },
+        csrfToken: {
+            name: process.env.NODE_ENV === 'production'
+                ? '__Host-next-auth.csrf-token'
+                : 'next-auth.csrf-token',
+            options: {
+                httpOnly: true,
+                sameSite: 'none',
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                domain: process.env.NODE_ENV === 'production'
+                    ? '.vercel.app'
+                    : undefined
+            }
+        }
+    },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
