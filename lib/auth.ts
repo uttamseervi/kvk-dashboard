@@ -81,9 +81,7 @@ export const authOptions: NextAuthOptions = {
                 sameSite: 'none', // 🔥 Required for cross-origin
                 secure: process.env.NODE_ENV === 'production', // 🔥 Must be true in production
                 path: '/',
-                domain: process.env.NODE_ENV === 'production'
-                    ? '.vercel.app' // Allow subdomain sharing
-                    : undefined
+                // Don't set domain for Vercel - let it default
             },
         },
         callbackUrl: {
@@ -94,9 +92,6 @@ export const authOptions: NextAuthOptions = {
                 sameSite: 'none',
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                domain: process.env.NODE_ENV === 'production'
-                    ? '.vercel.app'
-                    : undefined
             }
         },
         csrfToken: {
@@ -108,9 +103,6 @@ export const authOptions: NextAuthOptions = {
                 sameSite: 'none',
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                domain: process.env.NODE_ENV === 'production'
-                    ? '.vercel.app'
-                    : undefined
             }
         }
     },
