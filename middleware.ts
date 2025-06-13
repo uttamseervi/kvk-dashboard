@@ -2,8 +2,35 @@ import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { NextRequestWithAuth, withAuth } from 'next-auth/middleware'
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin': 'https://kvk-main.vercel.app',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Max-Age': '86400',
+}
+
 export default withAuth(
     async function middleware(req: NextRequestWithAuth) {
+        // Handle CORS preflight requests for API routes first
+        if (req.method === 'OPTIONS' && req.nextUrl.pathname.startsWith('/api/')) {
+            return new NextResponse(null, {
+                status: 200,
+                headers: corsHeaders,
+            })
+        }
+
+        // Add CORS headers to API responses
+        if (req.nextUrl.pathname.startsWith('/api/')) {
+            const response = NextResponse.next()
+
+            // Add CORS headers
+            Object.entries(corsHeaders).forEach(([key, value]) => {
+                response.headers.set(key, value)
+            })
+
+            return response
+        }
+
         const token = await getToken({ req })
         const isAuth = !!token
         const isAuthPage = req.nextUrl.pathname === '/'
@@ -27,10 +54,21 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
+                // Always allow OPTIONS requests
+                if (req.method === 'OPTIONS') {
+                    return true
+                }
+
+                // Allow all API routes (they handle their own auth if needed)
+                if (req.nextUrl.pathname.startsWith('/api/')) {
+                    return true
+                }
+
                 // Allow access to auth pages without token
                 if (req.nextUrl.pathname === '/') {
                     return true
                 }
+
                 // Require token for all other pages
                 return !!token
             }

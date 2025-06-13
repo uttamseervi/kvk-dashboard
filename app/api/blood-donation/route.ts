@@ -3,15 +3,18 @@ import prisma from '@/lib/prisma-client'
 
 // Helper function to add CORS headers
 function addCorsHeaders(response: NextResponse) {
-    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Origin', 'https://kvk-main.vercel.app')
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+    response.headers.set('Access-Control-Max-Age', '86400') // 24 hours
+    response.headers.set('Access-Control-Allow-Credentials', 'true')
     return response
 }
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS() {
-    return addCorsHeaders(new NextResponse(null, { status: 204 }))
+    const response = new NextResponse(null, { status: 204 })
+    return addCorsHeaders(response)
 }
 
 // POST /api/blood-donation - Create a new blood donation record
