@@ -4,6 +4,14 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Add CORS headers to all responses
+function addCorsHeaders(response: NextResponse) {
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
+}
+
 export async function POST(req: NextRequest) {
     console.log('POST request received to /api/contact')
     try {
@@ -13,7 +21,7 @@ export async function POST(req: NextRequest) {
         console.log(name, email, phone, subject, message)
 
         if (!name || !email || !message) {
-            return NextResponse.json({ error: 'Name, Email, and Message are required.' }, { status: 400 })
+            return addCorsHeaders(NextResponse.json({ error: 'Name, Email, and Message are required.' }, { status: 400 }))
         }
         const template = `
     <div style={{ fontFamily: 'Arial, sans-serif', lineHeight: 1.5 }}>
@@ -47,11 +55,11 @@ export async function POST(req: NextRequest) {
             },
         })
         console.log("the new contact is ", newContact)
-        return NextResponse.json({ response: newContact }, { status: 201 })
+        return addCorsHeaders(NextResponse.json({ response: newContact }, { status: 201 }))
 
     } catch (error) {
         console.error('Error saving contact:', error)
-        return NextResponse.json({ error: 'Failed to save contact information.' }, { status: 500 })
+        return addCorsHeaders(NextResponse.json({ error: 'Failed to save contact information.' }, { status: 500 }))
     }
 }
 
@@ -64,10 +72,10 @@ export async function GET() {
             }
         });
         console.log("Fetched contacts:", contacts)
-        return NextResponse.json({ contacts }, { status: 200 });
+        return addCorsHeaders(NextResponse.json({ contacts }, { status: 200 }));
     } catch (error) {
         console.error('Error fetching contacts:', error);
-        return NextResponse.json({ error: 'Failed to fetch contacts' }, { status: 500 });
+        return addCorsHeaders(NextResponse.json({ error: 'Failed to fetch contacts' }, { status: 500 }));
     }
 }
 
@@ -80,10 +88,10 @@ export async function PATCH(req: NextRequest) {
 
         if (!id || typeof resolved !== 'boolean') {
             console.log('Invalid request: missing id or resolved status')
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: 'Contact ID and resolution status are required' },
                 { status: 400 }
-            );
+            ));
         }
 
         const updatedContact = await prisma.contact.update({
@@ -92,13 +100,13 @@ export async function PATCH(req: NextRequest) {
         });
         console.log('Updated contact:', updatedContact)
 
-        return NextResponse.json({ contact: updatedContact }, { status: 200 });
+        return addCorsHeaders(NextResponse.json({ contact: updatedContact }, { status: 200 }));
     } catch (error) {
         console.error('Error updating contact:', error);
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: 'Failed to update contact status' },
             { status: 500 }
-        );
+        ));
     }
 }
 
@@ -111,10 +119,10 @@ export async function DELETE(req: NextRequest) {
 
         if (!id) {
             console.log('Invalid request: missing id')
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: 'Contact ID is required' },
                 { status: 400 }
-            );
+            ));
         }
 
         const deletedContact = await prisma.contact.delete({
@@ -122,13 +130,13 @@ export async function DELETE(req: NextRequest) {
         });
         console.log('Deleted contact:', deletedContact)
 
-        return NextResponse.json({ contact: deletedContact }, { status: 200 });
+        return addCorsHeaders(NextResponse.json({ contact: deletedContact }, { status: 200 }));
     } catch (error) {
         console.error('Error deleting contact:', error);
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: 'Failed to delete contact' },
             { status: 500 }
-        );
+        ));
     }
 }
 

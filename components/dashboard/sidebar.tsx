@@ -5,12 +5,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { Dialog, Transition } from "@headlessui/react"
-import { Home, MessageSquare, Calendar, Activity, Users, X, LayoutDashboard } from "lucide-react"
+import { Home, MessageSquare, Calendar, Activity, Users, X, LayoutDashboard, PersonStanding } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Contacts", href: "/dashboard/contacts", icon: MessageSquare },
+  { name: "Blood Donors", href: "/dashboard/blood-donors", icon: PersonStanding },
   { name: "Create Event", href: "/dashboard/events", icon: Calendar },
   { name: "Event Tracker", href: "/dashboard/tracker", icon: Activity },
   { name: "User Management", href: "/dashboard/users", icon: Users },
