@@ -2,25 +2,60 @@ import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 import prisma from "@/lib/prisma-client"
 
-// GET /api/users - Fetch all users
-export async function GET() {
-    try {
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                createdAt: true,
-            },
-        })
+// CORS headers configuration
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
 
-        return NextResponse.json(users)
+// GET /api/users - Fetch all users
+export async function GET(req: Request) {
+    try {
+        // Get email from URL search params
+        const { searchParams } = new URL(req.url)
+        const email = searchParams.get('email')
+
+        if (email) {
+            const user = await prisma.user.findUnique({
+                where: { email },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    createdAt: true,
+                },
+            })
+
+            if (!user) {
+                return NextResponse.json(
+                    { error: "User not found" },
+                    { status: 404, headers: corsHeaders }
+                )
+            }
+
+            return NextResponse.json(user, { headers: corsHeaders })
+        }
+        else {
+            const users = await prisma.user.findMany({
+                where: { role: "ADMIN" },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    createdAt: true,
+                },
+            })
+
+            return NextResponse.json(users, { headers: corsHeaders })
+        }
     } catch (error) {
         console.error("Error fetching users:", error)
         return NextResponse.json(
             { error: "Failed to fetch users" },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }
         )
     }
 }
@@ -35,7 +70,7 @@ export async function POST(request: Request) {
         if (!name || !email || !role || !password) {
             return NextResponse.json(
                 { error: "Missing required fields" },
-                { status: 400 }
+                { status: 400, headers: corsHeaders }
             )
         }
 
@@ -43,11 +78,11 @@ export async function POST(request: Request) {
         const existingUser = await prisma.user.findUnique({
             where: { email },
         })
-
+        console.log("existing user", existingUser)
         if (existingUser) {
             return NextResponse.json(
                 { error: "User with this email already exists" },
-                { status: 400 }
+                { status: 400, headers: corsHeaders }
             )
         }
 
@@ -70,13 +105,19 @@ export async function POST(request: Request) {
                 createdAt: true,
             },
         })
+        console.log("tje new user is ", user)
 
-        return NextResponse.json(user, { status: 201 })
+        return NextResponse.json(user, { status: 201, headers: corsHeaders })
     } catch (error) {
         console.error("Error creating user:", error)
         return NextResponse.json(
             { error: "Failed to create user" },
-            { status: 500 }
+            { status: 500, headers: corsHeaders }
         )
     }
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+    return NextResponse.json({}, { headers: corsHeaders })
 } 
