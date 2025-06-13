@@ -43,7 +43,11 @@ export async function GET() {
                     status: 'ACTIVE'
                 }
             }),
-            prisma.user.count(),
+            prisma.user.count({
+                where: {
+                    role: 'ADMIN'
+                }
+            }),
             Promise.all([
                 prisma.contact.findMany({
                     take: 5,

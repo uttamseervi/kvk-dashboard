@@ -39,7 +39,12 @@ export async function GET(req: Request) {
         }
         else {
             const users = await prisma.user.findMany({
-                where: { role: "ADMIN" },
+                where: {
+                    role: {
+                        equals: "ADMIN",
+                        mode: 'insensitive'
+                    }
+                },
                 select: {
                     id: true,
                     name: true,
