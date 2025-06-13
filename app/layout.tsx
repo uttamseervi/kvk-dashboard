@@ -8,9 +8,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Dashboard App",
-  description: "A complete frontend dashboard with dummy data",
-  generator: 'v0.dev'
+  title: "KVK Admin",
+  description: "Kvk",
 }
 
 export default function RootLayout({

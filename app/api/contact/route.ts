@@ -55,18 +55,6 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// Add OPTIONS handler for CORS preflight requests
-// export async function OPTIONS() {
-//     return new NextResponse(null, {
-//         status: 204,
-//         headers: {
-//             'Access-Control-Allow-Origin': '*',
-//             'Access-Control-Allow-Methods': 'POST, OPTIONS',
-//             'Access-Control-Allow-Headers': 'Content-Type',
-//         },
-//     })
-// }
-
 export async function GET() {
     console.log('GET request received to /api/contact')
     try {
@@ -142,6 +130,18 @@ export async function DELETE(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+// Add OPTIONS handler for CORS preflight requests
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    })
 }
 
 
