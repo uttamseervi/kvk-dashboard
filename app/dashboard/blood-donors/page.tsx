@@ -6,137 +6,156 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Trash2, Eye } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import axios from "axios"
 import { toast } from "sonner"
 
-interface Contact {
+interface BloodDonor {
     id: number
     name: string
     email: string
-    message: string
-    date: string
-    resolved: boolean
+    phone: string | null
+    bloodGroup: string
+    city: string
+    donationDate: string
+    message: string | null
 }
 
-export default function ContactsPage() {
-    const [contacts, setContacts] = useState<Contact[]>([])
+export default function BloodDonorsPage() {
+    const [donors, setDonors] = useState<BloodDonor[]>([])
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [isLoading, setIsLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState("unresolved")
+    const [selectedBloodGroup, setSelectedBloodGroup] = useState<string>("")
+    const [selectedCity, setSelectedCity] = useState<string>("")
+    const [selectedDonor, setSelectedDonor] = useState<BloodDonor | null>(null)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
     const itemsPerPage = 5
 
-    useEffect(() => {
-        fetchContacts()
-    }, [])
+    const bloodGroups = [
+        "A_POSITIVE", "A_NEGATIVE",
+        "B_POSITIVE", "B_NEGATIVE",
+        "O_POSITIVE", "O_NEGATIVE",
+        "AB_POSITIVE", "AB_NEGATIVE"
+    ]
 
-    const fetchContacts = async () => {
-        console.log('Fetching contacts...')
+    const formatBloodGroup = (group: string) => {
+        const [type, sign] = group.split('_')
+        return `${type}${sign === 'POSITIVE' ? '+' : '-'}`
+    }
+
+    useEffect(() => {
+        fetchDonors()
+    }, [selectedBloodGroup, selectedCity])
+
+    const fetchDonors = async () => {
         try {
-            const { data } = await axios.get('/api/contact')
-            console.log('Received contacts data:', data)
-            const formattedContacts = data.contacts.map((contact: any) => ({
-                id: contact.id,
-                name: contact.name,
-                email: contact.email,
-                message: contact.message,
-                date: new Date(contact.createdAt).toISOString().split('T')[0],
-                resolved: contact.resolved || false
+            const params = new URLSearchParams()
+            if (selectedBloodGroup) params.append('bloodGroup', selectedBloodGroup)
+            if (selectedCity) params.append('city', selectedCity)
+
+            const { data } = await axios.get(`/api/blood-donation?${params.toString()}`)
+            const formattedDonors = data.map((donor: any) => ({
+                id: donor.id,
+                name: donor.name,
+                email: donor.email,
+                phone: donor.phone,
+                bloodGroup: donor.bloodGroup,
+                city: donor.city,
+                donationDate: new Date(donor.donationDate).toISOString().split('T')[0],
+                message: donor.message
             }))
-            console.log('Formatted contacts:', formattedContacts)
-            setContacts(formattedContacts)
+            setDonors(formattedDonors)
         } catch (error) {
-            console.error('Error fetching contacts:', error)
-            toast.error('Failed to fetch contacts')
+            console.error('Error fetching blood donors:', error)
+            toast.error('Failed to fetch blood donors')
         } finally {
             setIsLoading(false)
         }
     }
 
-    const handleResolvedToggle = async (id: number, currentResolved: boolean) => {
-        console.log('Toggling resolved status for contact:', id, 'Current status:', currentResolved)
-        try {
-            const { data } = await axios.patch('/api/contact', {
-                id,
-                resolved: !currentResolved,
-            })
-            console.log('Update response:', data)
-
-            if (data.contact) {
-                setContacts(contacts.map(contact =>
-                    contact.id === id ? { ...contact, resolved: !currentResolved } : contact
-                ))
-                toast.success('Contact status updated successfully')
-            }
-        } catch (error) {
-            console.error('Error updating contact status:', error)
-            toast.error('Failed to update contact status')
-        }
-    }
-
     const handleDelete = async (id: number) => {
         try {
-            const { data } = await axios.delete('/api/contact', {
-                data: { id }
-            })
-
-            if (data.contact) {
-                setContacts(contacts.filter(contact => contact.id !== id))
-                toast.success('Contact deleted successfully')
+            const { data } = await axios.delete(`/api/blood-donation?id=${id}`)
+            if (data.message) {
+                setDonors(donors.filter(donor => donor.id !== id))
+                toast.success('Blood donor record deleted successfully')
             }
         } catch (error) {
-            console.error('Error deleting contact:', error)
-            toast.error('Failed to delete contact')
+            console.error('Error deleting blood donor:', error)
+            toast.error('Failed to delete blood donor record')
         }
     }
 
-    const filteredContacts = contacts.filter(
-        (contact) =>
-            (contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                contact.message.toLowerCase().includes(searchTerm.toLowerCase())) &&
-            (activeTab === 'all' ||
-                (activeTab === 'resolved' && contact.resolved) ||
-                (activeTab === 'unresolved' && !contact.resolved))
+    const handleViewDetails = (donor: BloodDonor) => {
+        setSelectedDonor(donor)
+        setIsDialogOpen(true)
+    }
+
+    const filteredDonors = donors.filter(
+        (donor) =>
+            donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            donor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            donor.city.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    const totalPages = Math.ceil(filteredContacts.length / itemsPerPage)
+    const totalPages = Math.ceil(filteredDonors.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
-    const paginatedContacts = filteredContacts.slice(startIndex, startIndex + itemsPerPage)
+    const paginatedDonors = filteredDonors.slice(startIndex, startIndex + itemsPerPage)
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Contact Submissions</h1>
-                <p className="text-gray-600">Manage and review contact form submissions</p>
+                <h1 className="text-3xl font-bold text-gray-900">Blood Donors</h1>
+                <p className="text-gray-600">Manage and view blood donor information</p>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Contact List</CardTitle>
-                    <CardDescription>All contact form submissions from your website</CardDescription>
+                    <CardTitle>Blood Donor List</CardTitle>
+                    <CardDescription>All registered blood donors in the system</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center space-x-2 mb-4">
-                        <Search className="h-4 w-4 text-gray-400" />
-                        <Input
-                            placeholder="Search contacts..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="max-w-sm"
-                        />
+                    <div className="flex flex-col space-y-4 mb-4">
+                        <div className="flex items-center space-x-2">
+                            <Search className="h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Search by name, email, or city..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
+                        <div className="flex space-x-4">
+                            <select
+                                value={selectedBloodGroup}
+                                onChange={(e) => setSelectedBloodGroup(e.target.value)}
+                                className="border rounded-md px-3 py-2"
+                            >
+                                <option value="">All Blood Groups</option>
+                                {bloodGroups.map(group => (
+                                    <option key={group} value={group}>
+                                        {formatBloodGroup(group)}
+                                    </option>
+                                ))}
+                            </select>
+                            <Input
+                                placeholder="Filter by city..."
+                                value={selectedCity}
+                                onChange={(e) => setSelectedCity(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
                     </div>
-
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                        <TabsList>
-                            <TabsTrigger value="unresolved">Unresolved</TabsTrigger>
-                            <TabsTrigger value="resolved">Resolved</TabsTrigger>
-                            <TabsTrigger value="all">All</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
 
                     <div className="rounded-md border">
                         <Table>
@@ -144,60 +163,56 @@ export default function ContactsPage() {
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead>Message</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Status</TableHead>
+                                    <TableHead>Phone</TableHead>
+                                    <TableHead>Blood Group</TableHead>
+                                    <TableHead>City</TableHead>
+                                    <TableHead>Donation Date</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                                        <TableCell colSpan={7} className="text-center">Loading...</TableCell>
                                     </TableRow>
-                                ) : paginatedContacts.length === 0 ? (
+                                ) : paginatedDonors.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center">No contacts found</TableCell>
+                                        <TableCell colSpan={7} className="text-center">No blood donors found</TableCell>
                                     </TableRow>
                                 ) : (
-                                    paginatedContacts.map((contact, index) => (
+                                    paginatedDonors.map((donor, index) => (
                                         <motion.tr
-                                            key={contact.id}
+                                            key={donor.id}
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ duration: 0.3, delay: index * 0.1 }}
                                             className="hover:bg-gray-50"
                                         >
-                                            <TableCell className="font-medium">{contact.name}</TableCell>
-                                            <TableCell>{contact.email}</TableCell>
-                                            <TableCell className="max-w-xs truncate">{contact.message}</TableCell>
-                                            <TableCell>{contact.date}</TableCell>
+                                            <TableCell className="font-medium">{donor.name}</TableCell>
+                                            <TableCell>{donor.email}</TableCell>
+                                            <TableCell>{donor.phone || '-'}</TableCell>
+                                            <TableCell>{formatBloodGroup(donor.bloodGroup)}</TableCell>
+                                            <TableCell>{donor.city}</TableCell>
+                                            <TableCell>{donor.donationDate}</TableCell>
                                             <TableCell>
-                                                <div className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        checked={contact.resolved}
-                                                        onCheckedChange={() => handleResolvedToggle(contact.id, contact.resolved)}
-                                                        id={`resolved-${contact.id}`}
-                                                    />
-                                                    <label
-                                                        htmlFor={`resolved-${contact.id}`}
-                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                    >
-                                                        Resolved
-                                                    </label>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {contact.resolved && (
+                                                <div className="flex space-x-2">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        onClick={() => handleDelete(contact.id)}
+                                                        onClick={() => handleViewDetails(donor)}
+                                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDelete(donor.id)}
                                                         className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
-                                                )}
+                                                </div>
                                             </TableCell>
                                         </motion.tr>
                                     ))
@@ -208,8 +223,8 @@ export default function ContactsPage() {
 
                     <div className="flex items-center justify-between space-x-2 py-4">
                         <div className="text-sm text-gray-500">
-                            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredContacts.length)} of{" "}
-                            {filteredContacts.length} entries
+                            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDonors.length)} of{" "}
+                            {filteredDonors.length} entries
                         </div>
                         <div className="flex items-center space-x-2">
                             <Button
@@ -234,6 +249,51 @@ export default function ContactsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Blood Donor Details</DialogTitle>
+                        <DialogDescription>
+                            Complete information about the blood donor
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedDonor && (
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">Name:</span>
+                                <span className="col-span-3">{selectedDonor.name}</span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">Email:</span>
+                                <span className="col-span-3">{selectedDonor.email}</span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">Phone:</span>
+                                <span className="col-span-3">{selectedDonor.phone || '-'}</span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">Blood Group:</span>
+                                <span className="col-span-3">{formatBloodGroup(selectedDonor.bloodGroup)}</span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">City:</span>
+                                <span className="col-span-3">{selectedDonor.city}</span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="font-medium">Donation Date:</span>
+                                <span className="col-span-3">{selectedDonor.donationDate}</span>
+                            </div>
+                            {selectedDonor.message && (
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <span className="font-medium">Message:</span>
+                                    <span className="col-span-3">{selectedDonor.message}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

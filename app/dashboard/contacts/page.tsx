@@ -6,9 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
+import { Search, ChevronLeft, ChevronRight, Trash2, Eye } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import axios from "axios"
 import { toast } from "sonner"
 
@@ -27,6 +34,8 @@ export default function ContactsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("unresolved")
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const itemsPerPage = 5
 
   useEffect(() => {
@@ -91,6 +100,11 @@ export default function ContactsPage() {
       console.error('Error deleting contact:', error)
       toast.error('Failed to delete contact')
     }
+  }
+
+  const handleViewDetails = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsDialogOpen(true)
   }
 
   const filteredContacts = contacts.filter(
@@ -188,16 +202,26 @@ export default function ContactsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {contact.resolved && (
+                        <div className="flex space-x-2">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(contact.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleViewDetails(contact)}
+                            className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
+                          {contact.resolved && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(contact.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </motion.tr>
                   ))
@@ -234,6 +258,55 @@ export default function ContactsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Contact Details</DialogTitle>
+            <DialogDescription>
+              Complete information about the contact submission
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContact && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-medium">Name:</span>
+                <span className="col-span-3">{selectedContact.name}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-medium">Email:</span>
+                <span className="col-span-3">{selectedContact.email}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-medium">Date:</span>
+                <span className="col-span-3">{selectedContact.date}</span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-medium">Status:</span>
+                <span className="col-span-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedContact.resolved}
+                      onCheckedChange={() => handleResolvedToggle(selectedContact.id, selectedContact.resolved)}
+                      id={`dialog-resolved-${selectedContact.id}`}
+                    />
+                    <label
+                      htmlFor={`dialog-resolved-${selectedContact.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Resolved
+                    </label>
+                  </div>
+                </span>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="font-medium">Message:</span>
+                <span className="col-span-3 whitespace-pre-wrap">{selectedContact.message}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

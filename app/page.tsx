@@ -44,11 +44,18 @@ function LoginForm() {
       setIsLoading(true)
       setError(null)
 
+      const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+
+      console.log('Attempting login with:', { email: data.email, callbackUrl }) // Debug log
+
       const result = await signIn("credentials", {
-        redirect: false,
         email: data.email,
         password: data.password,
+        callbackUrl,
+        redirect: true, // Let NextAuth handle the redirect
       })
+
+      console.log('SignIn result:', result) // Debug log
 
       if (result?.error) {
         setError(result.error)
@@ -56,8 +63,7 @@ function LoginForm() {
         return
       }
 
-      // const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
-      router.push("/dashboard")
+      // This won't be reached if redirect: true and login is successful
       toast.success("Logged in successfully")
     } catch (error) {
       setError("An unexpected error occurred")
@@ -100,6 +106,7 @@ function LoginForm() {
                 )}
               </div>
               <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -114,7 +121,6 @@ function LoginForm() {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
           </CardContent>
         </Card>
       </motion.div>

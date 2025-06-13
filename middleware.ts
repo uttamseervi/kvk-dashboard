@@ -7,32 +7,19 @@ export default withAuth(
         const token = await getToken({ req })
         const isAuth = !!token
         const isAuthPage = req.nextUrl.pathname === '/'
-        const isApiRoute = req.nextUrl.pathname.startsWith('/api')
 
-        // Skip auth checks for API routes (including NextAuth API routes)
-        if (isApiRoute) {
-            return NextResponse.next()
+        console.log('Middleware - Path:', req.nextUrl.pathname, 'IsAuth:', isAuth) // Debug log
+
+        // If user is on login page and is authenticated, redirect to dashboard
+        if (isAuthPage && isAuth) {
+            console.log('Redirecting authenticated user to dashboard') // Debug log
+            return NextResponse.redirect(new URL('/dashboard', req.url))
         }
 
-        // Allow the login page and NextAuth pages to load without redirect
-        if (isAuthPage) {
-            // Only redirect to dashboard if user is authenticated AND not coming from a callback
-            if (isAuth && !req.nextUrl.searchParams.has('callbackUrl')) {
-                return NextResponse.redirect(new URL('/dashboard', req.url))
-            }
-            return NextResponse.next()
-        }
-
-        if (!isAuth) {
-            let callbackUrl = req.nextUrl.pathname
-            if (req.nextUrl.search) {
-                callbackUrl += req.nextUrl.search
-            }
-
-            const encodedCallbackUrl = encodeURIComponent(callbackUrl)
-            return NextResponse.redirect(
-                new URL(`/?callbackUrl=${encodedCallbackUrl}`, req.url)
-            )
+        // If user is not authenticated and trying to access protected routes, redirect to login
+        if (!isAuth && !isAuthPage) {
+            console.log('Redirecting unauthenticated user to login') // Debug log
+            return NextResponse.redirect(new URL('/', req.url))
         }
 
         return NextResponse.next()
@@ -40,10 +27,11 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
-                // Always allow auth pages and API routes
-                if (req.nextUrl.pathname === '/' || req.nextUrl.pathname.startsWith('/api')) {
+                // Allow access to auth pages without token
+                if (req.nextUrl.pathname === '/') {
                     return true
                 }
+                // Require token for all other pages
                 return !!token
             }
         },
@@ -57,11 +45,12 @@ export const config = {
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
+         * - api/auth (NextAuth API routes)
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          * - public folder
          */
-        '/((?!_next/static|_next/image|favicon.ico|public).*)',
+        '/((?!api/auth|_next/static|_next/image|favicon.ico|public).*)',
     ],
 }
