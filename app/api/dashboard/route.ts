@@ -46,7 +46,7 @@ export async function GET() {
             }),
             prisma.user.count({
                 where: {
-                    role: 'ADMIN'
+                    role: 'Admin'
                 }
             }),
             prisma.user.count({
