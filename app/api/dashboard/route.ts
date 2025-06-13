@@ -34,7 +34,8 @@ export async function GET() {
         const [
             totalContacts,
             activeEvents,
-            totalUsers,
+            totalAdmins,
+            totalModerators,
             recentActivities
         ] = await Promise.all([
             prisma.contact.count(),
@@ -46,6 +47,11 @@ export async function GET() {
             prisma.user.count({
                 where: {
                     role: 'ADMIN'
+                }
+            }),
+            prisma.user.count({
+                where: {
+                    role: 'MODERATOR'
                 }
             }),
             Promise.all([
@@ -81,7 +87,8 @@ export async function GET() {
             stats: {
                 totalContacts,
                 activeEvents,
-                totalUsers
+                totalAdmins,
+                totalModerators
             },
             recentActivities
         })

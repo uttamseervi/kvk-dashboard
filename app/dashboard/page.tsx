@@ -12,7 +12,8 @@ import { formatDistanceToNow } from "date-fns"
 interface DashboardStats {
   totalContacts: number
   activeEvents: number
-  totalUsers: number
+  totalAdmins: number
+  totalModerators: number
   totalActivities: number
 }
 
@@ -68,17 +69,17 @@ export default function DashboardPage() {
       color: "text-green-600",
     },
     {
-      title: "Dashboard Users",
-      value: dashboardData?.stats?.totalUsers?.toLocaleString() ?? "0",
-      description: "Registered users",
+      title: "Admin Users",
+      value: dashboardData?.stats?.totalAdmins?.toLocaleString() ?? "0",
+      description: "Administrator accounts",
       icon: Users,
       color: "text-purple-600",
     },
     {
-      title: "Total Activities",
-      value: dashboardData?.stats?.totalActivities?.toLocaleString() ?? "0",
-      description: "All time activities",
-      icon: Activity,
+      title: "Moderator Users",
+      value: dashboardData?.stats?.totalModerators?.toLocaleString() ?? "0",
+      description: "Moderator accounts",
+      icon: Users,
       color: "text-orange-600",
     },
   ]
