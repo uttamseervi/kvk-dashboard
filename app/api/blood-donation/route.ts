@@ -1,28 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma-client'
+
+// Helper function to add CORS headers
+function addCorsHeaders(response: NextResponse) {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return response
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+    return addCorsHeaders(new NextResponse(null, { status: 204 }))
+}
 
 // POST /api/blood-donation - Create a new blood donation record
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
         const body = await req.json()
-        const { name, email, phone, bloodGroup, city, message, userId } = body
+        const { name, email, phone, bloodGroup, city, message } = body
 
         // Validate required fields
         if (!name || !email || !bloodGroup || !city || !message) {
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
-            )
+            ))
         }
 
-        // If userId is provided, check their last donation
-        if (userId) {
+        // Find user by email
+        const user = await prisma.user.findUnique({
+            where: {
+                email: email
+            }
+        })
+
+        // Check last donation if user exists
+        if (user?.id) {
             const lastDonation = await prisma.bloodDonor.findFirst({
                 where: {
-                    userId: parseInt(userId)
+                    userId: user.id
                 },
                 orderBy: {
                     donationDate: 'desc'
@@ -34,10 +51,10 @@ export async function POST(req: NextRequest) {
                 threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
                 if (lastDonation.donationDate > threeMonthsAgo) {
-                    return NextResponse.json(
+                    return addCorsHeaders(NextResponse.json(
                         { error: "You can only donate blood once every 3 months" },
                         { status: 400 }
-                    )
+                    ))
                 }
             }
         }
@@ -51,24 +68,23 @@ export async function POST(req: NextRequest) {
                 bloodGroup,
                 city,
                 message,
-                userId: userId ? parseInt(userId) : null
+                userId: user?.id || null
             }
         })
 
-        return NextResponse.json(donation, { status: 201 })
+        return addCorsHeaders(NextResponse.json(donation, { status: 201 }))
     } catch (error) {
         console.error("Error creating blood donation:", error)
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: "Failed to create blood donation record" },
             { status: 500 }
-        )
+        ))
     }
 }
 
 // GET /api/blood-donation - Get all blood donations with optional filters
 export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
         const { searchParams } = new URL(req.url)
         const bloodGroup = searchParams.get('bloodGroup')
         const city = searchParams.get('city')
@@ -96,54 +112,39 @@ export async function GET(req: NextRequest) {
             }
         })
 
-        return NextResponse.json(donations)
+        return addCorsHeaders(NextResponse.json(donations))
     } catch (error) {
         console.error("Error fetching blood donations:", error)
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: "Failed to fetch blood donations" },
             { status: 500 }
-        )
+        ))
     }
 }
 
 // PATCH /api/blood-donation - Update a blood donation record
 export async function PATCH(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            )
-        }
-
         const body = await req.json()
-        const { id, name, email, phone, bloodGroup, city, message, userId } = body
+        const { id, name, email, phone, bloodGroup, city, message } = body
 
         if (!id) {
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: "Donation ID is required" },
                 { status: 400 }
-            )
+            ))
         }
 
-        // Check if the donation exists and belongs to the user (if userId is provided)
+        // Check if the donation exists
         const existingDonation = await prisma.bloodDonor.findUnique({
             where: { id }
         })
 
         if (!existingDonation) {
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: "Donation not found" },
                 { status: 404 }
-            )
-        }
-
-        if (userId && existingDonation.userId !== parseInt(userId)) {
-            return NextResponse.json(
-                { error: "Unauthorized to update this donation" },
-                { status: 403 }
-            )
+            ))
         }
 
         // Update the donation
@@ -159,13 +160,13 @@ export async function PATCH(req: NextRequest) {
             }
         })
 
-        return NextResponse.json(updatedDonation)
+        return addCorsHeaders(NextResponse.json(updatedDonation))
     } catch (error) {
         console.error("Error updating blood donation:", error)
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: "Failed to update blood donation" },
             { status: 500 }
-        )
+        ))
     }
 }
 
@@ -174,32 +175,24 @@ export async function DELETE(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url)
         const id = searchParams.get('id')
-        const userId = searchParams.get('userId')
 
         if (!id) {
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: "Donation ID is required" },
                 { status: 400 }
-            )
+            ))
         }
 
-        // Check if the donation exists and belongs to the user (if userId is provided)
+        // Check if the donation exists
         const existingDonation = await prisma.bloodDonor.findUnique({
             where: { id: parseInt(id) }
         })
 
         if (!existingDonation) {
-            return NextResponse.json(
+            return addCorsHeaders(NextResponse.json(
                 { error: "Donation not found" },
                 { status: 404 }
-            )
-        }
-
-        if (userId && existingDonation.userId !== parseInt(userId)) {
-            return NextResponse.json(
-                { error: "Unauthorized to delete this donation" },
-                { status: 403 }
-            )
+            ))
         }
 
         // Delete the donation
@@ -207,15 +200,15 @@ export async function DELETE(req: NextRequest) {
             where: { id: parseInt(id) }
         })
 
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { message: "Blood donation record deleted successfully" },
             { status: 200 }
-        )
+        ))
     } catch (error) {
         console.error("Error deleting blood donation:", error)
-        return NextResponse.json(
+        return addCorsHeaders(NextResponse.json(
             { error: "Failed to delete blood donation" },
             { status: 500 }
-        )
+        ))
     }
 } 
